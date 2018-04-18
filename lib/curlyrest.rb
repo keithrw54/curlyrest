@@ -44,7 +44,6 @@ module Curlyrest
         body << l
       end
     end
-    byebug
     if n.to_hash.keys && n.to_hash.keys.include?('content-encoding') &&
       n.to_hash['content-encoding'].include?('gzip')
         n.unzip_body(body)

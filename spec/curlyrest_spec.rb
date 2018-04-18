@@ -23,8 +23,8 @@ describe Curlyrest do
     r2 = RestClient::Request.execute(method: :get,
       url: 'http://example.com', headers: {use_curl: 'debug'})
     expect(r1).to eq(r2)
-    r1.headers.reject!{|h|h['server']}
-    r2.headers.reject!{|h|h['server']}
+    r1.headers.reject!{|h|h['server'] || h['accept_ranges'] || h['date'] || h['expires']}
+    r2.headers.reject!{|h|h['server'] || h['accept_ranges'] || h['date'] || h['expires']}
     expect(r1.headers).to eq(r2.headers)
   end
 end
