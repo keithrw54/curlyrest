@@ -53,6 +53,10 @@ module Curlyrest
     n
   end
 
+  def curl_data(payload)
+    payload.to_s if payload
+  end
+
   def curl_headers(headers)
     ret_headers = ' '
     headers.each{|k,v| ret_headers << "-H '#{k}: \"#{v}\"' "}
@@ -61,7 +65,7 @@ module Curlyrest
 
   def transmit(uri, method, processed_headers, payload, &block)
     curlyrest_option = processed_headers.delete('Use-Curl')
-    curl_line = "curl -isS -X #{method.upcase} #{curl_headers(processed_headers)}'#{uri}'"
+    curl_line = "curl -isS -X #{method.upcase} #{curl_headers(processed_headers)}'#{uri}' -d '#{curl_data(payload)}'"
     puts curl_line if curlyrest_option == 'debug'
     r = `#{curl_line}`
     puts r if curlyrest_option == 'debug'

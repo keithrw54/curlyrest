@@ -1,19 +1,20 @@
 require 'spec_helper'
 
 describe Curlyrest do
+  SIMPLE_URL = 'https://oauth.brightcove.com/v4/public_operations'
   it 'has a version number' do
     expect(Curlyrest::VERSION).not_to be nil
   end
 
   it 'handles a generic request' do
     expect{r = RestClient::Request.execute(method: :get,
-      url: 'http://example.com')
+      url: SIMPLE_URL)
     }.not_to raise_error
   end
 
   it 'correctly processes a curl request' do
     expect{r = RestClient::Request.execute(method: :get,
-      url: 'http://example.com', headers: {use_curl: true})
+      url: SIMPLE_URL, headers: {use_curl: true})
     }.not_to raise_error
   end
 
@@ -21,10 +22,17 @@ describe Curlyrest do
     r1 = RestClient::Request.execute(method: :get,
       url: 'http://example.com', headers: {use_curl: false})
     r2 = RestClient::Request.execute(method: :get,
-      url: 'http://example.com', headers: {use_curl: 'debug'})
+      url: 'http://example.com', headers: {use_curl: true})
     expect(r1).to eq(r2)
     r1.headers.reject!{|h|h['server'] || h['accept_ranges'] || h['date'] || h['expires']}
     r2.headers.reject!{|h|h['server'] || h['accept_ranges'] || h['date'] || h['expires']}
     expect(r1.headers).to eq(r2.headers)
+  end
+
+  it 'passes data on a POST' do
+    expect{r = RestClient::Request.execute(method: :post, 
+      url: 'https://oauth.brightcove.com/v4/public_operations', 
+      headers: {use_curl: true}, 
+      payload: {foo: 'bar'})}.not_to raise_error
   end
 end
