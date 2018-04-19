@@ -59,7 +59,7 @@ module Curlyrest
 
   def curl_headers(headers)
     ret_headers = ' '
-    headers.each{|k,v| ret_headers << "-H '#{k}: \"#{v}\"' "}
+    headers.each{|k,v| ret_headers << "-H '#{k}: #{v}' "}
     ret_headers
   end
 
