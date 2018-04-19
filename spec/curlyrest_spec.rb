@@ -30,9 +30,10 @@ describe Curlyrest do
   end
 
   it 'passes data on a POST' do
-    expect{r = RestClient::Request.execute(method: :post, 
-      url: 'https://oauth.brightcove.com/v4/public_operations', 
-      headers: {use_curl: true}, 
-      payload: {foo: 'bar'})}.not_to raise_error
+    expect{
+      r = RestClient::Request.execute(method: :post, 
+      url: 'http://localhost:3000/todos', 
+      headers: {}, 
+      payload: {title: 'bar', created_by: 'kw'})}.not_to raise_error
   end
 end

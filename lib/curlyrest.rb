@@ -63,9 +63,9 @@ module Curlyrest
     ret_headers
   end
 
-  def transmit(uri, method, processed_headers, payload, &block)
-    curlyrest_option = processed_headers.delete('Use-Curl')
-    curl_line = "curl -isS -X #{method.upcase} #{curl_headers(processed_headers)}'#{uri}' -d '#{curl_data(payload)}'"
+  def transmit(uri, method, headers, payload, &block)
+    curlyrest_option = headers.delete(:use_curl)
+    curl_line = "curl -isS -X #{method.upcase}#{curl_headers(headers)}'#{uri}' -d '#{curl_data(payload)}'"
     puts curl_line if curlyrest_option == 'debug'
     r = `#{curl_line}`
     puts r if curlyrest_option == 'debug'
@@ -82,7 +82,7 @@ module RestClient
       # IPv6 addresses in [] for use in the Host request header.
       case processed_headers['Use-Curl']
       when 'debug', 'true'
-        r = Curlyrest.transmit(uri, method, processed_headers, payload, &block)
+        r = Curlyrest.transmit(uri, method, headers, payload, &block)
         RestClient::Response.create(r.body, r, self)
       else
         transmit uri, 
