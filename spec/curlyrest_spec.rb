@@ -33,7 +33,7 @@ describe Curlyrest do
     expect{
       r = RestClient::Request.execute(method: :post, 
       url: 'http://localhost:3000/todos', 
-      headers: {use_curl: true}, 
+      headers: {use_curl: 'debug', no_restclient_headers: true}, 
       payload: {title: 'bar', created_by: 'kw'})}.not_to raise_error
   end
 end
