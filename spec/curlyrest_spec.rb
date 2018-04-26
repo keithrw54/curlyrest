@@ -29,7 +29,7 @@ describe Curlyrest do
     expect(r1.headers).to eq(r2.headers)
   end
 
-  it 'passes data on a POST' do
+  it 'passes data on a POST', todos: true do
     expect{
       r = RestClient::Request.execute(method: :post, 
       url: 'http://localhost:3000/todos', 
