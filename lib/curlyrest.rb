@@ -32,7 +32,7 @@ module Curlyrest
       when :http_status
         rem = /^HTTP\/(\d+\.\d+) (\d+) (.+)$/.match(l)
         n = CurlResponse.new(rem[1], rem[2], rem[3].chop)
-        t = :headers
+        t = :headers unless rem[2] == 100
       when :headers
         if /^[\r\n]+$/.match(l)
           t = :body
