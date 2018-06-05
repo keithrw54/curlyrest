@@ -57,6 +57,10 @@ module Curlyrest
     payload.to_s if payload
   end
 
+  def curl_proxy(option)
+    option ? " -x #{option}" : ''
+  end
+  
   def curl_headers(headers)
     ret_headers = ' '
     headers.each{|k,v| ret_headers << "-H '#{k}: #{v}' "}
@@ -65,8 +69,9 @@ module Curlyrest
 
   def transmit(uri, method, headers, payload, &block)
     curlyrest_option = headers.delete('Use-Curl') || headers.delete(:use_curl)
+    proxy_option = headers.delete('Use-Proxy') || headers.delete(:use_proxy)
     headers.delete('No-Restclient-Headers') || headers.delete(:no_restclient_headers)
-    curl_line = "curl -isS -X #{method.upcase}#{curl_headers(headers)}'#{uri}' -d '#{curl_data(payload)}'"
+    curl_line = "curl -isS -X #{method.upcase}#{curl_proxy(proxy_option)}#{curl_headers(headers)}'#{uri}' -d '#{curl_data(payload)}'"
     puts curl_line if curlyrest_option == 'debug'
     r = `#{curl_line}`
     puts r if curlyrest_option == 'debug'
