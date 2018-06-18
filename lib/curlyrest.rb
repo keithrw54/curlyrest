@@ -27,22 +27,31 @@ module Curlyrest
     t = :http_status
     n = nil
     body = ''
-    r.each_line do |l|
+    lines = r.lines
+    i = 0
+    while (i < lines.length)
       case t
       when :http_status
-        rem = /^HTTP\/(\d+\.\d+) (\d+) (.+)$/.match(l)
-        n = CurlResponse.new(rem[1], rem[2], rem[3].chop)
-        t = :headers unless rem[2] == 100
+        rem = /^HTTP\/(\d+\.\d+) (\d+) (.+)$/.match(lines[i])
+        if rem[2] == '100'
+          t = :wait_for_another_http
+        else
+          t = :headers
+          n = CurlResponse.new(rem[1], rem[2], rem[3].chop)
+        end
+      when :wait_for_another_http
+        t = :http_status if rem = /^HTTP\/(\d+\.\d+) (\d+) (.+)$/.match(lines[i+1])
       when :headers
-        if /^[\r\n]+$/.match(l)
+        if /^[\r\n]+$/.match(lines[i])
           t = :body
         else
-          rem = /^([\w-]+):\s(.*)/.match(l.chop)
+          rem = /^([\w-]+):\s(.*)/.match(lines[i].chop)
           n[rem[1]] = rem[2]
         end 
       when :body
-        body << l
+        body << lines[i]
       end
+      i += 1
     end
     if n.to_hash.keys && n.to_hash.keys.include?('content-encoding') &&
       n.to_hash['content-encoding'].include?('gzip')
