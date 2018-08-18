@@ -1,8 +1,10 @@
-require "curlyrest/version"
+require 'curlyrest/version'
 require 'rest-client'
 require 'byebug'
 
+# module extending Rest-Client to optionally do via curl
 module Curlyrest
+  # class for a constructing a curl response
   class CurlResponse
     include Net::HTTPHeader
     attr_reader :code, :http_version, :message, :headers
@@ -15,98 +17,145 @@ module Curlyrest
       @inflate = Zlib::Inflate.new(32 + Zlib::MAX_WBITS)
       initialize_http_header nil
     end
-    def body=(value)
-      @body = value
-    end
+
     def unzip_body(gzip)
       @body = @inflate.inflate(gzip)
     end
   end
 
-  def parse_response(r)
-    t = :http_status
-    n = nil
-    body = ''
-    lines = r.lines
-    i = 0
-    while (i < lines.length)
-      case t
-      when :http_status
-        rem = /^HTTP\/(\d+\.\d+) (\d+) (.+)$/.match(lines[i])
-        if rem[2] == '100'
-          t = :wait_for_another_http
-        else
-          t = :headers
-          n = CurlResponse.new(rem[1], rem[2], rem[3].chop)
-        end
-      when :wait_for_another_http
-        t = :http_status if rem = /^HTTP\/(\d+\.\d+) (\d+) (.+)$/.match(lines[i+1])
-      when :headers
-        if /^[\r\n]+$/.match(lines[i])
-          t = :body
-        else
-          rem = /^([\w-]+):\s(.*)/.match(lines[i].chop)
-          n[rem[1]] = rem[2]
-        end 
-      when :body
-        body << lines[i]
+  # class for parsing curl responses
+  class CurlResponseParser
+    attr_accessor :response
+    def initialize(response)
+      @state = :read_status
+      @response = nil
+      @body = ''
+      parse(response)
+    end
+
+    def parse(response)
+      response.lines.each do |line|
+        parse_line(line)
       end
-      i += 1
+      ce = @response.to_hash.dig('content-encoding')
+      if ce&.include?('gzip')
+        @response.unzip_body(@body)
+      else
+        @response.body = @body
+      end
     end
-    if n.to_hash.keys && n.to_hash.keys.include?('content-encoding') &&
-      n.to_hash['content-encoding'].include?('gzip')
-        n.unzip_body(body)
-    else
-      n.body = (body)
+
+    def parse_status(line)
+      line.chop =~ %r{^HTTP\/(\d+\.\d+) (\d+) (.+)$}
+      return if Regexp.last_match(2) == 100
+      @state = :headers
+      @response = CurlResponse.new(Regexp.last_match(1),
+                                   Regexp.last_match(2),
+                                   Regexp.last_match(3))
     end
-    n
+
+    def parse_headers(line)
+      if /^\s*$/.match?(line)
+        @state = :body
+        return
+      end
+      line.chop =~ /^([\w-]+):\s(.*)/
+      @response[Regexp.last_match(1)] =
+        Regexp.last_match(2)
+    end
+
+    def parse_line(line)
+      case @state
+      when :body
+        @body << line
+      when :read_status
+        parse_status(line)
+      when :headers
+        parse_headers(line)
+      else
+        puts "parser error on #{line}"
+      end
+    end
   end
 
-  def curl_data(payload)
-    payload.to_s if payload
+  # class for transmitting curl requests
+  class CurlTransmitter
+    attr_accessor :options, :headers, :line
+    def initialize(uri, method, headers, payload)
+      @payload = payload
+      @method = method
+      @uri = uri
+      @headers, @options = calc_options(headers)
+      @line = curl_command
+    end
+
+    def calc_options(headers, options = {})
+      options[:curl] =  headers.delete('Use-Curl') ||
+                        headers.delete(:use_curl)
+      options[:proxy] = headers.delete('Use-Proxy') ||
+                        headers.delete(:use_proxy)
+      headers.delete('No-Restclient-Headers') ||
+        headers.delete(:no_restclient_headers)
+      [headers, options]
+    end
+
+    def curl_data(payload)
+      payload.&to_s
+    end
+
+    def curl_proxy(option)
+      option ? " -x #{option}" : ''
+    end
+
+    def curl_headers(headers)
+      ret_headers = ' '
+      headers.each { |k, v| ret_headers << "-H '#{k}: #{v}' " }
+      ret_headers
+    end
+
+    def curl_command
+      @line = "curl -isS -X #{@method.upcase}#{curl_proxy(@options[:proxy])}"\
+              "#{curl_headers(@headers)}'#{@uri}' -d '#{curl_data(@payload)}'"
+    end
   end
 
-  def curl_proxy(option)
-    option ? " -x #{option}" : ''
-  end
-  
-  def curl_headers(headers)
-    ret_headers = ' '
-    headers.each{|k,v| ret_headers << "-H '#{k}: #{v}' "}
-    ret_headers
-  end
-
-  def transmit(uri, method, headers, payload, &block)
-    curlyrest_option = headers.delete('Use-Curl') || headers.delete(:use_curl)
-    proxy_option = headers.delete('Use-Proxy') || headers.delete(:use_proxy)
-    headers.delete('No-Restclient-Headers') || headers.delete(:no_restclient_headers)
-    curl_line = "curl -isS -X #{method.upcase}#{curl_proxy(proxy_option)}#{curl_headers(headers)}'#{uri}' -d '#{curl_data(payload)}'"
-    puts curl_line if curlyrest_option == 'debug'
-    r = `#{curl_line}`
-    puts r if curlyrest_option == 'debug'
-    parse_response(r)
+  def transmit(uri, method, headers, payload)
+    ct = CurlTransmitter.new(uri, method, headers, payload)
+    puts ct.line if ct.options[:curl] == 'debug'
+    r = `#{ct.line}`
+    puts r if ct.options[:curl] == 'debug'
+    CurlResponseParser.new(r).response
   end
 end
 
 include Curlyrest
 
+# restclient monkeypatch
 module RestClient
+  # restClient request class
   class Request
-    def execute & block
-      # With 2.0.0+, net/http accepts URI objects in requests and handles wrapping
-      # IPv6 addresses in [] for use in the Host request header.
-      case processed_headers['Use-Curl']
-      when 'debug', 'true'
-        h = processed_headers['No-Restclient-Headers'] == 'true' ? headers : processed_headers
-        r = Curlyrest.transmit(uri, method, h, payload, &block)
-        RestClient::Response.create(r.body, r, self)
+    def execute(& block)
+      # With 2.0.0+, net/http accepts URI objects in requests and handles
+      # wrapping IPv6 addresses in [] for use in the Host request header.
+      if processed_headers['Use-Curl']
+        curl_execute(& block)
       else
-        transmit uri, 
-          net_http_request_class(method).new(uri, processed_headers),
-            payload, & block
+        transmit(uri, net_http_request_class(method)
+                        .new(uri, processed_headers),
+                 payload, & block)
       end
     ensure
-      payload.close if payload
+      payload&.close
+    end
+
+    def curl_execute(& block)
+      h = if processed_headers['No-Restclient-Headers'] == true
+            headers
+          else
+            processed_headers
+          end
+      r = Curlyrest.transmit(uri, method, h, payload, &block)
+      RestClient::Response.create(r.body, r, self)
     end
   end
 end
