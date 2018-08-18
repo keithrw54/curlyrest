@@ -119,7 +119,7 @@ module Curlyrest
     end
   end
 
-  def transmit(uri, method, headers, payload)
+  def curl_transmit(uri, method, headers, payload)
     ct = CurlTransmitter.new(uri, method, headers, payload)
     puts ct.line if ct.options[:curl] == 'debug'
     r = `#{ct.line}`
@@ -128,12 +128,11 @@ module Curlyrest
   end
 end
 
-include Curlyrest
-
 # restclient monkeypatch
 module RestClient
   # restClient request class
   class Request
+    prepend Curlyrest
     def execute(& block)
       # With 2.0.0+, net/http accepts URI objects in requests and handles
       # wrapping IPv6 addresses in [] for use in the Host request header.
@@ -154,7 +153,7 @@ module RestClient
           else
             processed_headers
           end
-      r = Curlyrest.transmit(uri, method, h, payload, &block)
+      r = curl_transmit(uri, method, h, payload, &block)
       RestClient::Response.create(r.body, r, self)
     end
   end
