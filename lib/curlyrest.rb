@@ -100,7 +100,7 @@ module Curlyrest
     end
 
     def curl_data(payload)
-      payload.&to_s
+      payload&.to_s
     end
 
     def curl_proxy(option)
