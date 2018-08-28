@@ -9,7 +9,7 @@ module Curlyrest
     include Net::HTTPHeader
     attr_reader :code, :http_version, :message, :headers
     attr_accessor :body, :inflate
-    def initialize(http_version, status, message)
+    def initialize(http_version, status, message='')
       @message = message
       @http_version = http_version
       @code = status
@@ -46,13 +46,12 @@ module Curlyrest
     end
 
     def parse_status(line)
-      re = %r{^HTTP\/(\d+\.\d+) (\d+) (.+)$}
+      re = %r{^HTTP\/(\d+|\d+\.\d+)\s(\d+).*$}
       return unless re.match(line.chop)
-      return if Regexp.last_match(2) == '100'
+      return unless Regexp.last_match(2) == '200'
       @state = :headers
       @response = CurlResponse.new(Regexp.last_match(1),
-                                   Regexp.last_match(2),
-                                   Regexp.last_match(3))
+                                   Regexp.last_match(2))
     end
 
     def parse_headers(line)
