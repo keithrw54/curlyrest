@@ -46,12 +46,14 @@ module Curlyrest
     end
 
     def parse_status(line)
-      re = %r{^HTTP\/(\d+|\d+\.\d+)\s(\d+).*$}
+      re = %r{^HTTP\/(\d+|\d+\.\d+)\s(\d+)\s*(.*)$}
       return unless re.match(line.chop)
-      return unless Regexp.last_match(2) == '200'
+      r = Regexp.last_match(2)
+      return if r and r == '100'
       @state = :headers
       @response = CurlResponse.new(Regexp.last_match(1),
-                                   Regexp.last_match(2))
+                                   Regexp.last_match(2),
+                                   Regexp.last_match(3))
     end
 
     def add_header(key, value)
