@@ -155,7 +155,7 @@ module RestClient
     def execute(& block)
       # With 2.0.0+, net/http accepts URI objects in requests and handles
       # wrapping IPv6 addresses in [] for use in the Host request header.
-      if processed_headers['Use-Curl']
+      if processed_headers['Use-Curl'] || ENV['FORCE_CURL_DEBUG']
         curl_execute(& block)
       else
         transmit(uri, net_http_request_class(method)
