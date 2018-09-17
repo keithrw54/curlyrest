@@ -9,7 +9,7 @@ module Curlyrest
     include Net::HTTPHeader
     attr_reader :code, :http_version, :message, :headers
     attr_accessor :body, :inflate
-    def initialize(http_version, status, message='')
+    def initialize(http_version, status, message = '')
       @message = message
       @http_version = http_version
       @code = status
@@ -49,7 +49,7 @@ module Curlyrest
       re = %r{^HTTP\/(\d+|\d+\.\d+)\s(\d+)\s*(.*)$}
       return unless re.match(line.chop)
       r = Regexp.last_match(2)
-      return if r and r == '100'
+      return if r && r == '100'
       @state = :headers
       @response = CurlResponse.new(Regexp.last_match(1),
                                    Regexp.last_match(2),
@@ -62,7 +62,7 @@ module Curlyrest
           @response[key] << value
         else
           @response[key] = [@response[key], value]
-          end
+        end
       else
         @response[key] = value
       end
@@ -130,13 +130,19 @@ module Curlyrest
       @line = "curl -isS -X #{@method.upcase}#{curl_proxy(@options[:proxy])}"\
               "#{curl_headers(@headers)}'#{@uri}' -d '#{curl_data(@payload)}'"
     end
+
+    def exec_curl
+      debug = options[:curl] == 'debug' || ENV['FORCE_CURL_DEBUG']
+      puts line if debug
+      r = `#{line}`
+      puts r if debug
+      r
+    end
   end
 
   def curl_transmit(uri, method, headers, payload)
     ct = CurlTransmitter.new(uri, method, headers, payload)
-    puts ct.line if ct.options[:curl] == 'debug'
-    r = `#{ct.line}`
-    puts r if ct.options[:curl] == 'debug'
+    r = ct.exec_curl
     CurlResponseParser.new(r).response
   end
 end
