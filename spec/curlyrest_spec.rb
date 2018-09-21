@@ -87,4 +87,10 @@ yabba dabba doo
       )
     end .not_to raise_error
   end
+
+  it 'handles timeout option' do
+    RestClient::Request.execute(timeout: 10,
+      method: :get,
+      url: 'http://example.com', headers: { use_curl: true }
+  end
 end

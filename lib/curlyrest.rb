@@ -93,12 +93,13 @@ module Curlyrest
 
   # class for transmitting curl requests
   class CurlTransmitter
-    attr_accessor :options, :headers, :line
-    def initialize(uri, method, headers, payload)
+    attr_accessor :options, :headers, :line, :timeout
+    def initialize(uri, method, headers, payload, args)
       @payload = payload
       @method = method
       @uri = uri
       @headers, @options = calc_options(headers)
+      @timeout = args[:timeout]
       @line = curl_command
     end
 
@@ -120,6 +121,12 @@ module Curlyrest
       option ? " -x #{option}" : ''
     end
 
+    def curl_start
+      timeout_str = ''
+      timeout_str << " --max-time #{@timeout}" unless @timeout.nil?
+      "curl -isS -X #{@method.upcase}#{timeout_str}"
+    end
+
     def curl_headers(headers)
       ret_headers = ' '
       headers.each { |k, v| ret_headers << "-H '#{k}: #{v}' " }
@@ -127,7 +134,7 @@ module Curlyrest
     end
 
     def curl_command
-      @line = "curl -isS -X #{@method.upcase}#{curl_proxy(@options[:proxy])}"\
+      @line = "#{curl_start}#{curl_proxy(@options[:proxy])}"\
               "#{curl_headers(@headers)}'#{@uri}' -d '#{curl_data(@payload)}'"
     end
 
@@ -140,8 +147,8 @@ module Curlyrest
     end
   end
 
-  def curl_transmit(uri, method, headers, payload)
-    ct = CurlTransmitter.new(uri, method, headers, payload)
+  def curl_transmit(uri, method, headers, payload, args)
+    ct = CurlTransmitter.new(uri, method, headers, payload, args)
     r = ct.exec_curl
     CurlResponseParser.new(r).response
   end
@@ -172,8 +179,61 @@ module RestClient
           else
             processed_headers
           end
-      r = curl_transmit(uri, method, h, payload, &block)
+      r = curl_transmit(uri, method, h, payload,
+                        timeout: open_timeout, &block)
       RestClient::Response.create(r.body, r, self)
+    end
+
+    def process_cookie_args!(uri, headers, args)
+
+      # Avoid ambiguity in whether options from headers or options from
+      # Request#initialize should take precedence by raising ArgumentError when
+      # both are present. Prior versions of rest-client claimed to give
+      # precedence to init options, but actually gave precedence to headers.
+      # Avoid that mess by erroring out instead.
+      if headers[:cookies] && args[:cookies]
+        raise ArgumentError.new(
+          "Cannot pass :cookies in Request.new() and in headers hash")
+      end
+
+      cookies_data = headers.delete(:cookies) || args[:cookies]
+
+      # this method has problems if no cookies are in the request
+      return if cookies_data.nil?
+
+      # return copy of cookie jar as is
+      if cookies_data.is_a?(HTTP::CookieJar)
+        return cookies_data.dup
+      end
+
+      # convert cookies hash into a CookieJar
+      jar = HTTP::CookieJar.new
+
+      (cookies_data || []).each do |key, val|
+
+        # Support for Array<HTTP::Cookie> mode:
+        # If key is a cookie object, add it to the jar directly and assert that
+        # there is no separate val.
+        if key.is_a?(HTTP::Cookie)
+          if val
+            raise ArgumentError.new("extra cookie val: #{val.inspect}")
+          end
+
+          jar.add(key)
+          next
+        end
+
+        if key.is_a?(Symbol)
+          key = key.to_s
+        end
+
+        # assume implicit domain from the request URI, and set for_domain to
+        # permit subdomains
+        jar.add(HTTP::Cookie.new(key, val, domain: uri.hostname.downcase,
+                                 path: '/', for_domain: true))
+      end
+
+      jar
     end
   end
 end
