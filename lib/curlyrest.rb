@@ -115,6 +115,8 @@ module Curlyrest
       headers, options = opts_from_headers(headers)
       headers.delete('No-Restclient-Headers') ||
         headers.delete(:no_restclient_headers)
+      headers.delete('Accept-Encoding') ||
+        headers.delete('accept_encoding')
       [headers, options]
     end
 
