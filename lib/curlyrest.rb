@@ -102,13 +102,17 @@ module Curlyrest
       @line = curl_command
     end
 
-    def calc_options(headers, options = {})
-      options[:curl] =  headers.delete('Use-Curl') ||
-                        headers.delete(:use_curl)
-      options[:proxy] = headers.delete('Use-Proxy') ||
-                        headers.delete(:use_proxy)
-      options[:timeout] = headers.delete('Timeout') ||
-                        headers.delete(:timeout)
+    def opts_from_headers(headers, options = {})
+      [[:curl, 'Use-Curl', :use_curl],
+       [:proxy, 'Use-Proxy', :use_proxy],
+       [:timeout, 'Timeout', :timeout]].each do |a|
+        options[a[0]] = headers.delete(a[1]) || headers.delete(a[2])
+      end
+      [headers, options]
+    end
+
+    def calc_options(headers)
+      headers, options = opts_from_headers(headers)
       headers.delete('No-Restclient-Headers') ||
         headers.delete(:no_restclient_headers)
       [headers, options]
