@@ -38,7 +38,7 @@ yabba dabba doo
     parser = Curlyrest::CurlResponseParser.new(response)
     expect(parser.response.message).to eq('Bad Request')
   end
-  
+
   it 'correctly processes http 2 response' do
     response = 'HTTP/2 200
 X-Powered-By: Express
@@ -54,7 +54,7 @@ yabba dabba doo
     parser = Curlyrest::CurlResponseParser.new(response)
     expect(parser.response.message).to eq('')
   end
-  
+
   it 'response from curl matches rest-client' do
     r1 = RestClient::Request.execute(
       method: :get,
@@ -83,14 +83,15 @@ yabba dabba doo
         url: 'http://localhost:3000/todos',
         headers: { use_curl: true, no_restclient_headers: true },
         payload: { title: 'bar', created_by: 'kw',
-                   junk: "a" * 1500 }
+                   junk: 'a' * 1500 }
       )
     end .not_to raise_error
   end
 
   it 'handles timeout option' do
     RestClient::Request.execute(timeout: 10,
-      method: :get,
-      url: 'http://example.com', headers: { use_curl: true }
+                                method: :get,
+                                url: 'http://example.com',
+                                headers: { use_curl: true })
   end
 end

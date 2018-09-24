@@ -94,12 +94,11 @@ module Curlyrest
   # class for transmitting curl requests
   class CurlTransmitter
     attr_accessor :options, :headers, :line, :timeout
-    def initialize(uri, method, headers, payload, args)
+    def initialize(uri, method, headers, payload)
       @payload = payload
       @method = method
       @uri = uri
       @headers, @options = calc_options(headers)
-      @timeout = args[:timeout]
       @line = curl_command
     end
 
@@ -108,6 +107,8 @@ module Curlyrest
                         headers.delete(:use_curl)
       options[:proxy] = headers.delete('Use-Proxy') ||
                         headers.delete(:use_proxy)
+      options[:timeout] = headers.delete('Timeout') ||
+                        headers.delete(:timeout)
       headers.delete('No-Restclient-Headers') ||
         headers.delete(:no_restclient_headers)
       [headers, options]
@@ -122,8 +123,9 @@ module Curlyrest
     end
 
     def curl_start
+      timeout = options[:timeout]
       timeout_str = ''
-      timeout_str << " --max-time #{@timeout}" unless @timeout.nil?
+      timeout_str << " --max-time #{timeout}" unless timeout.nil?
       "curl -isS -X #{@method.upcase}#{timeout_str}"
     end
 
@@ -147,8 +149,8 @@ module Curlyrest
     end
   end
 
-  def curl_transmit(uri, method, headers, payload, args)
-    ct = CurlTransmitter.new(uri, method, headers, payload, args)
+  def curl_transmit(uri, method, headers, payload)
+    ct = CurlTransmitter.new(uri, method, headers, payload)
     r = ct.exec_curl
     CurlResponseParser.new(r).response
   end
@@ -179,8 +181,7 @@ module RestClient
           else
             processed_headers
           end
-      r = curl_transmit(uri, method, h, payload,
-                        timeout: open_timeout, &block)
+      r = curl_transmit(uri, method, h, payload, &block)
       RestClient::Response.create(r.body, r, self)
     end
 
