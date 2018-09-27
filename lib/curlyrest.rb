@@ -48,8 +48,10 @@ module Curlyrest
     def parse_status(line)
       re = %r{^HTTP\/(\d+|\d+\.\d+)\s(\d+)\s*(.*)$}
       return unless re.match(line.chop)
+
       r = Regexp.last_match(2)
       return if r && r == '100'
+
       @state = :headers
       @response = CurlResponse.new(Regexp.last_match(1),
                                    Regexp.last_match(2),
@@ -69,7 +71,7 @@ module Curlyrest
     end
 
     def parse_headers(line)
-      if /^\s*$/.match?(line)
+      if /^\s*$/ =~ line
         @state = :body
         return
       end
@@ -189,58 +191,6 @@ module RestClient
           end
       r = curl_transmit(uri, method, h, payload, &block)
       RestClient::Response.create(r.body, r, self)
-    end
-
-    def process_cookie_args!(uri, headers, args)
-
-      # Avoid ambiguity in whether options from headers or options from
-      # Request#initialize should take precedence by raising ArgumentError when
-      # both are present. Prior versions of rest-client claimed to give
-      # precedence to init options, but actually gave precedence to headers.
-      # Avoid that mess by erroring out instead.
-      if headers[:cookies] && args[:cookies]
-        raise ArgumentError.new(
-          "Cannot pass :cookies in Request.new() and in headers hash")
-      end
-
-      cookies_data = headers.delete(:cookies) || args[:cookies]
-
-      # this method has problems if no cookies are in the request
-      return if cookies_data.nil?
-
-      # return copy of cookie jar as is
-      if cookies_data.is_a?(HTTP::CookieJar)
-        return cookies_data.dup
-      end
-
-      # convert cookies hash into a CookieJar
-      jar = HTTP::CookieJar.new
-
-      (cookies_data || []).each do |key, val|
-
-        # Support for Array<HTTP::Cookie> mode:
-        # If key is a cookie object, add it to the jar directly and assert that
-        # there is no separate val.
-        if key.is_a?(HTTP::Cookie)
-          if val
-            raise ArgumentError.new("extra cookie val: #{val.inspect}")
-          end
-
-          jar.add(key)
-          next
-        end
-
-        if key.is_a?(Symbol)
-          key = key.to_s
-        end
-
-        # assume implicit domain from the request URI, and set for_domain to
-        # permit subdomains
-        jar.add(HTTP::Cookie.new(key, val, domain: uri.hostname.downcase,
-                                 path: '/', for_domain: true))
-      end
-
-      jar
     end
   end
 end

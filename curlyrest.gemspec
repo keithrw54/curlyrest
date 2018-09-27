@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   spec.add_development_dependency 'bundler', '~> 1.11'
-  spec.add_development_dependency 'byebug', '~> 2.0'
+  spec.add_development_dependency 'byebug'
   spec.add_development_dependency 'rake', '~> 10.0'
   spec.add_development_dependency 'rest-client', '~> 2.0'
   spec.add_development_dependency 'rspec', '~> 3.0'
