@@ -55,6 +55,25 @@ yabba dabba doo
     expect(parser.response.message).to eq('')
   end
 
+  it 'correctly appends headers' do
+    response = 'HTTP/2 200
+X-Powered-By: Express
+Access-Control-Allow-Origin: *
+Content-Type: application/json
+Date: Thu, 06 Sep 2018 19:05:26 GMT
+content-length: 388
+l5d-success-class: 1.0
+Via: 1.1 linkerd, 1.1 linkerd
+Junk: Fred
+Junk: Barney
+Junk: Wilma
+
+yabba dabba doo
+'
+    parser = Curlyrest::CurlResponseParser.new(response)
+    expect(parser.response.to_hash['junk']).to eq(%w[Fred Barney Wilma])
+  end
+
   it 'response from curl matches rest-client' do
     r1 = RestClient::Request.execute(
       method: :get,

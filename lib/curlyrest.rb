@@ -58,25 +58,13 @@ module Curlyrest
                                    Regexp.last_match(3))
     end
 
-    def add_header(key, value)
-      if @response.key?(key)
-        if @response[key].class.name == 'Array'
-          @response[key] << value
-        else
-          @response[key] = [@response[key], value]
-        end
-      else
-        @response[key] = value
-      end
-    end
-
     def parse_headers(line)
       if /^\s*$/ =~ line
         @state = :body
         return
       end
       /^([\w-]+):\s(.*)/ =~ line.chop
-      add_header(Regexp.last_match(1), Regexp.last_match(2))
+      @response.add_field(Regexp.last_match(1), Regexp.last_match(2))
     end
 
     def parse_line(line)
