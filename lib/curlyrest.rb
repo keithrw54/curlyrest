@@ -132,8 +132,8 @@ module Curlyrest
     end
 
     def curl_command
-      @line = "#{curl_start}#{curl_proxy(@options[:proxy])}"\
-              "#{curl_headers(@headers)}'#{@uri}' -d '#{curl_data(@payload)}'"
+      "#{curl_start}#{curl_proxy(@options[:proxy])}"\
+      "#{curl_headers(@headers)}'#{@uri}' -d '#{curl_data(@payload)}'"
     end
 
     def exec_curl
@@ -172,7 +172,7 @@ module RestClient
     end
 
     def curl_execute(& block)
-      h = if processed_headers['No-Restclient-Headers'] == true
+      h = if processed_headers['No-Restclient-Headers'] == 'true'
             headers
           else
             processed_headers
