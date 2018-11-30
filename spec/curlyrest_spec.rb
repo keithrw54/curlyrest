@@ -113,4 +113,16 @@ yabba dabba doo
                                 url: 'http://example.com',
                                 headers: { use_curl: true })
   end
+
+  it 'handles data without single quotes' do
+    ct = Curlyrest::CurlTransmitter.new(nil, '', {}, {})
+    expect(ct.curl_data('stuff here')).to eq('-d \'stuff here\'')
+  end
+
+  it 'handles data with embedded single quotes' do
+    ct = Curlyrest::CurlTransmitter.new(nil, '', {}, {})
+    payload = "some json with 's"
+    expect(ct.curl_data(payload))
+      .to eq('--data-binary @/tmp/curl_quoted_binary')
+  end
 end

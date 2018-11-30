@@ -59,7 +59,7 @@ module Curlyrest
     end
 
     def parse_headers(line)
-      if /^\s*$/ =~ line
+      if /^\s*$/.match?(line)
         @state = :body
         return
       end
@@ -111,7 +111,10 @@ module Curlyrest
     end
 
     def curl_data(payload)
-      payload&.to_s
+      return nil unless payload
+      return "-d '#{payload}'" unless payload.include?('\'')
+      File.write('/tmp/curl_quoted_binary', payload)
+      '--data-binary @/tmp/curl_quoted_binary'
     end
 
     def curl_proxy(option)
@@ -133,7 +136,7 @@ module Curlyrest
 
     def curl_command
       "#{curl_start}#{curl_proxy(@options[:proxy])}"\
-      "#{curl_headers(@headers)}'#{@uri}' -d '#{curl_data(@payload)}'"
+      "#{curl_headers(@headers)}'#{@uri}' #{curl_data(@payload&.to_s)}"
     end
 
     def exec_curl
