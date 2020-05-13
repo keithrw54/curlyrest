@@ -125,7 +125,7 @@ module Curlyrest
       timeout = options[:timeout]
       timeout_str = ''
       timeout_str << " --max-time #{timeout}" unless timeout.nil?
-      "curl -isS -X #{@method.upcase}#{timeout_str}"
+      "curl -isSL -X #{@method.upcase}#{timeout_str}"
     end
 
     def curl_headers(headers)

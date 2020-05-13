@@ -86,11 +86,11 @@ yabba dabba doo
     expect(r1).to eq(r2)
     r1.headers.reject! do |h|
       h['server'] || h['accept_ranges'] || h['date'] ||
-        h['expires'] || h['etag']
+        h['expires'] || h['etag'] || h['age']
     end
     r2.headers.reject! do |h|
       h['server'] || h['accept_ranges'] || h['date'] ||
-        h['expires'] || h['etag']
+        h['expires'] || h['etag'] || h['age']
     end
     expect(r1.headers).to eq(r2.headers)
   end
