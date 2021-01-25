@@ -1,8 +1,11 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'curlyrest'
 
 describe Curlyrest do
-  SIMPLE_URL = 'https://oauth.brightcove.com/v4/public_operations'.freeze
+  include_context 'curlyrest shared'
+
   it 'has a version number' do
     expect(Curlyrest::VERSION).not_to be nil
   end
@@ -10,7 +13,7 @@ describe Curlyrest do
   it 'handles a generic request' do
     expect do
       RestClient::Request.execute(method: :get,
-                                  url: SIMPLE_URL)
+                                  url: simple_url)
     end.not_to raise_error
   end
 
@@ -18,7 +21,7 @@ describe Curlyrest do
     expect do
       RestClient::Request.execute(
         method: :get,
-        url: SIMPLE_URL, headers: { use_curl: true }
+        url: simple_url, headers: { use_curl: true }
       )
     end.not_to raise_error
   end
@@ -104,7 +107,7 @@ yabba dabba doo
         payload: { title: 'bar', created_by: 'kw',
                    junk: 'a' * 1500 }
       )
-    end .not_to raise_error
+    end.not_to raise_error
   end
 
   it 'handles timeout option' do

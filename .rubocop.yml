@@ -1,11 +1,17 @@
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+  
 Style/FrozenStringLiteralComment:
   Enabled: false
 
 Metrics/BlockLength:
+  Max: 2000
   Exclude:
+    - 'spec/*.rb'
+    - 'spec/**/*.rb'
     - 'Rakefile'
     - '**/*.rake'
-    - 'spec/**/*.rb'
     - '*.gemspec'
 
 Metrics/MethodLength:

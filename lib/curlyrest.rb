@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'curlyrest/version'
 require 'rest-client'
 require 'byebug'
@@ -9,6 +11,7 @@ module Curlyrest
     include Net::HTTPHeader
     attr_reader :code, :http_version, :message, :headers
     attr_accessor :body, :inflate
+
     def initialize(http_version, status, message = '')
       @message = message
       @http_version = http_version
@@ -26,27 +29,33 @@ module Curlyrest
   # class for parsing curl responses
   class CurlResponseParser
     attr_accessor :response
+
     def initialize(response)
       @state = :read_status
       @response = nil
-      @body = ''
+      @body_lines = []
+      @body = nil
       parse(response)
+    end
+
+    def body
+      @body || @body_lines.join
     end
 
     def parse(response)
       response.lines.each do |line|
         parse_line(line)
       end
-      ce = @response.to_hash.dig('content-encoding')
+      ce = @response.to_hash['content-encoding']
       if ce&.include?('gzip')
         @response.unzip_body(@body)
       else
-        @response.body = @body
+        @response.body = body
       end
     end
 
     def parse_status(line)
-      re = %r{^HTTP\/(\d+|\d+\.\d+)\s(\d+)\s*(.*)$}
+      re = %r{^HTTP/(\d+|\d+\.\d+)\s(\d+)\s*(.*)$}
       return unless re.match(line.chop)
 
       r = Regexp.last_match(2)
@@ -70,7 +79,7 @@ module Curlyrest
     def parse_line(line)
       case @state
       when :body
-        @body << line
+        @body_lines << line
       when :read_status
         parse_status(line)
       when :headers
@@ -84,6 +93,7 @@ module Curlyrest
   # class for transmitting curl requests
   class CurlTransmitter
     attr_accessor :options, :headers, :line, :timeout
+
     def initialize(uri, method, headers, payload)
       @payload = payload
       @method = method
@@ -113,6 +123,7 @@ module Curlyrest
     def curl_data(payload)
       return nil unless payload
       return "-d '#{payload}'" unless payload.include?('\'')
+
       File.write('/tmp/curl_quoted_binary', payload)
       '--data-binary @/tmp/curl_quoted_binary'
     end
@@ -125,13 +136,13 @@ module Curlyrest
       timeout = options[:timeout]
       timeout_str = ''
       timeout_str << " --max-time #{timeout}" unless timeout.nil?
-      "curl -isSL -X #{@method.upcase}#{timeout_str}"
+      "curl -isSL -X #{@method.upcase}#{timeout_str} 2>&1"
     end
 
     def curl_headers(headers)
-      ret_headers = ' '
+      ret_headers = [' ']
       headers.each { |k, v| ret_headers << "-H '#{k}: #{v}' " }
-      ret_headers
+      ret_headers.join
     end
 
     def curl_command
@@ -151,6 +162,9 @@ module Curlyrest
   def curl_transmit(uri, method, headers, payload)
     ct = CurlTransmitter.new(uri, method, headers, payload)
     r = ct.exec_curl
+    re = /curl: \(7\) Failed to connect to localhost port \d*: Connection refused/
+    raise Errno::ECONNREFUSED if re.match(r)
+
     CurlResponseParser.new(r).response
   end
 end
