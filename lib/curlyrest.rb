@@ -48,7 +48,7 @@ module Curlyrest
       end
       ce = @response.to_hash['content-encoding']
       if ce&.include?('gzip')
-        @response.unzip_body(@body)
+        @response.unzip_body(body)
       else
         @response.body = body
       end
@@ -115,8 +115,6 @@ module Curlyrest
       headers, options = opts_from_headers(headers)
       headers.delete('No-Restclient-Headers') ||
         headers.delete(:no_restclient_headers)
-      headers.delete('Accept-Encoding') ||
-        headers.delete('accept_encoding')
       [headers, options]
     end
 
@@ -162,8 +160,6 @@ module Curlyrest
   def curl_transmit(uri, method, headers, payload)
     ct = CurlTransmitter.new(uri, method, headers, payload)
     r = ct.exec_curl
-    re = /curl: \(7\) Failed to connect to localhost port \d*: Connection refused/
-    raise Errno::ECONNREFUSED if re.match(r)
 
     CurlResponseParser.new(r).response
   end
