@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.version       = Curlyrest::VERSION
   spec.authors       = ['Keith Williams']
   spec.email         = ['keithrw@comcast.net']
-  spec.required_ruby_version = ['~> 2.5.5', '< 3.0']
+  spec.required_ruby_version = ['>= 2.5.5', '< 3.0']
   spec.summary       =
     'gem extending rest-client, allowing use/debug of curl for request'
   spec.description   =
