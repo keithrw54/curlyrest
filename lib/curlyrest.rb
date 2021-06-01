@@ -10,19 +10,14 @@ module Curlyrest
   class CurlResponse
     include Net::HTTPHeader
     attr_reader :code, :http_version, :message, :headers
-    attr_accessor :body, :inflate
+    attr_accessor :body
 
     def initialize(http_version, status, message = '')
       @message = message
       @http_version = http_version
       @code = status
       @body = ''
-      @inflate = Zlib::Inflate.new(32 + Zlib::MAX_WBITS)
       initialize_http_header nil
-    end
-
-    def unzip_body(gzip)
-      @body = @inflate.inflate(gzip)
     end
   end
 
@@ -46,12 +41,7 @@ module Curlyrest
       response.lines.each do |line|
         parse_line(line)
       end
-      ce = @response.to_hash['content-encoding']
-      if ce&.include?('gzip')
-        @response.unzip_body(body)
-      else
-        @response.body = body
-      end
+      @response.body = body
     end
 
     def parse_status(line)
