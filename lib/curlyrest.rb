@@ -63,6 +63,8 @@ module Curlyrest
         return
       end
       /^([\w-]+):\s(.*)/ =~ line.chop
+      raise "invalid line while parsing headers: #{line}" unless Regexp.last_match
+
       @response.add_field(Regexp.last_match(1), Regexp.last_match(2))
     end
 
@@ -74,8 +76,6 @@ module Curlyrest
         parse_status(line)
       when :headers
         parse_headers(line)
-      else
-        puts "parser error on #{line}"
       end
     end
   end
@@ -123,7 +123,7 @@ module Curlyrest
     def curl_start
       timeout = options[:timeout]
       timeout_str = ''
-      timeout_str << " --max-time #{timeout}" unless timeout.nil?
+      timeout_str += " --max-time #{timeout}" if timeout
       "curl -isSL -X #{@method.upcase}#{timeout_str} 2>&1"
     end
 
@@ -135,7 +135,7 @@ module Curlyrest
 
     def curl_command
       "#{curl_start}#{curl_proxy(@options[:proxy])}"\
-      "#{curl_headers(@headers)}'#{@uri}' #{curl_data(@payload&.to_s)}"
+        "#{curl_headers(@headers)}'#{@uri}' #{curl_data(@payload&.to_s)}"
     end
 
     def exec_curl

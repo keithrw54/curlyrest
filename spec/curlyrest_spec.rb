@@ -10,10 +10,19 @@ describe Curlyrest do
     expect(Curlyrest::VERSION).not_to be nil
   end
 
-  it 'handles a generic request' do
+  it 'handles a non-curl request' do
     expect do
       RestClient::Request.execute(method: :get,
                                   url: simple_url)
+    end.not_to raise_error
+  end
+
+  it 'handles a generic request w No-Restclient-Headers' do
+    expect do
+      RestClient::Request.execute(method: :get,
+                                  url: simple_url,
+                                  headers: { no_restclient_headers: true,
+                                             use_curl: true })
     end.not_to raise_error
   end
 
@@ -27,54 +36,24 @@ describe Curlyrest do
   end
 
   it 'correctly processes error response' do
-    response = 'HTTP/1.1 400 Bad Request
-X-Powered-By: Express
-Access-Control-Allow-Origin: *
-Content-Type: application/json
-Date: Thu, 06 Sep 2018 19:05:26 GMT
-content-length: 388
-l5d-success-class: 1.0
-Via: 1.1 linkerd, 1.1 linkerd
-
-yabba dabba doo
-'
-    parser = Curlyrest::CurlResponseParser.new(response)
+    parser = Curlyrest::CurlResponseParser.new(error_response)
     expect(parser.response.message).to eq('Bad Request')
   end
 
   it 'correctly processes http 2 response' do
-    response = 'HTTP/2 200
-X-Powered-By: Express
-Access-Control-Allow-Origin: *
-Content-Type: application/json
-Date: Thu, 06 Sep 2018 19:05:26 GMT
-content-length: 388
-l5d-success-class: 1.0
-Via: 1.1 linkerd, 1.1 linkerd
-
-yabba dabba doo
-'
-    parser = Curlyrest::CurlResponseParser.new(response)
+    parser = Curlyrest::CurlResponseParser.new(simple_response)
     expect(parser.response.message).to eq('')
   end
 
   it 'correctly appends headers' do
-    response = 'HTTP/2 200
-X-Powered-By: Express
-Access-Control-Allow-Origin: *
-Content-Type: application/json
-Date: Thu, 06 Sep 2018 19:05:26 GMT
-content-length: 388
-l5d-success-class: 1.0
-Via: 1.1 linkerd, 1.1 linkerd
-Junk: Fred
-Junk: Barney
-Junk: Wilma
-
-yabba dabba doo
-'
-    parser = Curlyrest::CurlResponseParser.new(response)
+    parser = Curlyrest::CurlResponseParser.new(response_w_headers)
     expect(parser.response.to_hash['junk']).to eq(%w[Fred Barney Wilma])
+  end
+
+  it 'detects invalid line in response' do
+    expect { Curlyrest::CurlResponseParser.new(invalid_response) }
+      .to raise_error(RuntimeError,
+                      "invalid line while parsing headers: nonsense\n")
   end
 
   it 'response from curl matches rest-client' do
@@ -88,14 +67,12 @@ yabba dabba doo
     )
     expect(r1).to eq(r2)
     r1.headers.reject! do |h|
-      h['server'] || h['accept_ranges'] || h['date'] ||
-        h['expires'] || h['etag'] || h['age']
+      %i[server accept_ranges date expires etag age].include?(h)
     end
     r2.headers.reject! do |h|
-      h['server'] || h['accept_ranges'] || h['date'] ||
-        h['expires'] || h['etag'] || h['age']
+      %i[server accept_ranges date expires etag age].include?(h)
     end
-    expect(r1.headers).to eq(r2.headers)
+    expect(r1.headers.sort).to eq(r2.headers.sort)
   end
 
   it 'passes data on a POST with 100 continue', todos: true do
@@ -111,10 +88,10 @@ yabba dabba doo
   end
 
   it 'handles timeout option' do
-    RestClient::Request.execute(timeout: 10,
-                                method: :get,
+    RestClient::Request.execute(method: :get,
                                 url: 'http://example.com',
-                                headers: { use_curl: true })
+                                headers: { timeout: 10,
+                                           use_curl: true })
   end
 
   it 'handles data without single quotes' do
