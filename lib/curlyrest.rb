@@ -166,6 +166,7 @@ module RestClient
       if processed_headers['Use-Curl'] || ENV['FORCE_CURL_DEBUG']
         curl_execute(& block)
       else
+        @read_timeout = processed_headers['Timeout'].to_i if processed_headers['Timeout']
         transmit(uri, net_http_request_class(method)
                         .new(uri, processed_headers),
                  payload, & block)
