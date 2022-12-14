@@ -20,12 +20,12 @@ Or install it yourself as:
 
 ## Usage
 
-Simply replace your use of require 'rest-client' with require 'curlyrest', and optionally add header of :use_curl with true or 'debug' which will cause the request to be executed with curl and response parsed to be compatable with rest-client.
+Simply replace your use of require 'rest-client' with require 'curlyrest', and optionally add header of :use_curl with 'debug' (allowing only certain requests to be curl'd). This will cause the request to be executed with curl and response parsed to be compatable with rest-client.
 Environment variable `FORCE_CURL_DEBUG` will cause all API calls to be executed and debugged with curl.
 
 ## Development
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `lib/curlyrest/version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
 ## Limitations
 
