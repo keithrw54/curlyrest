@@ -20,8 +20,8 @@ Or install it yourself as:
 
 ## Usage
 
-Simply replace your use of require 'rest-client' with require 'curlyrest', and optionally add header of :use_curl with 'debug' (allowing only certain requests to be curl'd). This will cause the request to be executed with curl and response parsed to be compatable with rest-client.
-Environment variable `FORCE_CURL_DEBUG` will cause all API calls to be executed and debugged with curl.
+Simply replace your use of require 'rest-client' with require 'curlyrest', and optionally add header of :use_curl with either 'debug' (which will output the curl request / response) or any other value (which will execute via curl, but not output). The curl executed response is returned as compatable with rest-client.
+Environment variable `FORCE_CURL_DEBUG` will cause all API calls to be executed and output with curl.
 
 ## Development
 
